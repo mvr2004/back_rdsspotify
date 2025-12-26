@@ -113,3 +113,28 @@ async def search_tracks(
 async def test_endpoint():
     """Simple test endpoint"""
     return {"message": "Spotify API is working!"}
+
+
+@router.get("/search/artists")
+async def search_artists(
+    q: str = Query(..., description="Search query for artists"),
+    limit: int = Query(20, ge=1, le=50, description="Number of results (1-50)"),
+    offset: int = Query(0, ge=0, description="Pagination offset")
+):
+    """Search for artists with formatted results"""
+    try:
+        artists = SpotifyService.search_artists(
+            query=q,
+            limit=limit,
+            offset=offset
+        )
+        
+        return {
+            "query": q,
+            "limit": limit,
+            "offset": offset,
+            "total_artists": len(artists),
+            "artists": artists
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

@@ -171,3 +171,45 @@ class SpotifyService:
         """Clear cached token (for testing or credential changes)"""
         SpotifyService._token_cache = None
         SpotifyService._token_expiry = 0
+
+
+    @staticmethod
+    def search_artists(
+        query: str, 
+        limit: int = 20,
+        offset: int = 0
+    ) -> List[Dict]:
+        """
+        Search for artists with formatted results
+        
+        Returns:
+            List of formatted artist objects
+        """
+        results = SpotifyService.search(
+            query=query,
+            search_type="artist",
+            limit=limit,
+            offset=offset
+        )
+        
+        artists = results.get("artists", {}).get("items", [])
+        formatted_artists = []
+        
+        for artist in artists:
+            # Get artist images
+            images = artist.get("images", [])
+            image_url = images[0]["url"] if images else None
+            
+            formatted_artist = {
+                "id": artist.get("id"),
+                "name": artist.get("name"),
+                "genres": artist.get("genres", []),
+                "popularity": artist.get("popularity"),
+                "followers": artist.get("followers", {}).get("total", 0),
+                "image_url": image_url,
+                "external_url": artist.get("external_urls", {}).get("spotify"),
+                "uri": artist.get("uri")
+            }
+            formatted_artists.append(formatted_artist)
+        
+        return formatted_artists
