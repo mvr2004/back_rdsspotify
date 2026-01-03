@@ -13,6 +13,9 @@ class Settings:
     # App Configuration
     DEBUG = os.getenv("DEBUG", "False").lower() == "true"
     PORT = int(os.getenv("PORT", 8000))
+    
+    # JWT Secret Key
+    SECRET_KEY = os.getenv("SECRET_KEY", "fallback-secret-key-change-in-production")
 
 # Create settings instance
 settings = Settings()
