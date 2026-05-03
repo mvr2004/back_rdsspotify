@@ -1,6 +1,7 @@
 import secrets
 from typing import Dict, Optional
 import requests
+import base64
 from urllib.parse import urlencode
 from app.core.config import settings
 
@@ -11,9 +12,11 @@ class AuthService:
     @staticmethod
     def verify_credentials():
         """Verify Spotify credentials are working"""
-        print(f"Client ID: {settings.SPOTIFY_CLIENT_ID[:10]}...")
-        print(f"Client Secret: {settings.SPOTIFY_CLIENT_SECRET[:10]}...")
-        print(f"Redirect URI: {settings.SPOTIFY_REDIRECT_URI}")
+        return {
+            "client_id_configured": bool(settings.SPOTIFY_CLIENT_ID),
+            "client_secret_configured": bool(settings.SPOTIFY_CLIENT_SECRET),
+            "redirect_uri_configured": bool(settings.SPOTIFY_REDIRECT_URI),
+        }
 
     @staticmethod
     def get_authorization_url() -> str:
@@ -47,10 +50,6 @@ class AuthService:
     @staticmethod
     def exchange_code_for_token(code: str) -> Dict:
         """Exchange authorization code for access token"""
-        
-        import base64
-        
-        # Create Basic Auth header correctly
         client_id = settings.SPOTIFY_CLIENT_ID
         client_secret = settings.SPOTIFY_CLIENT_SECRET
         
@@ -75,12 +74,8 @@ class AuthService:
             }
         )
         
-        print(f"Token exchange status: {response.status_code}")
-        print(f"Token exchange response: {response.text}")
-        
         if response.status_code != 200:
             error_msg = f"Token exchange failed: {response.text}"
-            print(error_msg)
             raise Exception(error_msg)
         
         return response.json()
@@ -89,9 +84,14 @@ class AuthService:
     @staticmethod
     def refresh_access_token(refresh_token: str) -> Dict:
         """Refresh expired access token"""
+        client_id = settings.SPOTIFY_CLIENT_ID
+        client_secret = settings.SPOTIFY_CLIENT_SECRET
         
-        auth_str = f"{settings.Spotify_CLIENT_ID}:{settings.SPOTIFY_CLIENT_SECRET}"
-        auth_b64 = requests.utils.quote(auth_str, safe='')
+        if not client_id or not client_secret:
+            raise Exception("Spotify credentials not configured")
+        
+        auth_str = f"{client_id}:{client_secret}"
+        auth_b64 = base64.b64encode(auth_str.encode("utf-8")).decode("utf-8")
         
         response = requests.post(
             "https://accounts.spotify.com/api/token",
@@ -113,7 +113,7 @@ class AuthService:
     @staticmethod
     def validate_state(state: str) -> bool:
         """Validate OAuth state to prevent CSRF attacks"""
-        return state in AuthService._state_store
+        return AuthService._state_store.pop(state, None) is True
 
     @staticmethod
     def get_user_profile(access_token: str) -> Dict:

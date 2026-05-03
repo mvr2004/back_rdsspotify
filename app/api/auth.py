@@ -1,10 +1,11 @@
-from fastapi import APIRouter, HTTPException, Request, Response, Depends
+from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import RedirectResponse
-from typing import Dict
 import json
+import base64
 
 from app.services.auth_service import AuthService
 from app.core.security import create_access_token, verify_token
+from app.core.config import settings
 
 router = APIRouter()
 
@@ -75,11 +76,6 @@ async def spotify_callback(
             "jwt_token": jwt_token
         }
         
-        # Redirect to frontend with token
-        from fastapi.responses import RedirectResponse
-        import json
-        import base64
-        
         # Prepare data for frontend
         frontend_data = {
             "success": True,
@@ -92,18 +88,17 @@ async def spotify_callback(
             }
         }
         
-        # Encode data to pass in URL
         data_json = json.dumps(frontend_data)
-        data_b64 = base64.b64encode(data_json.encode()).decode()
+        data_b64 = base64.urlsafe_b64encode(data_json.encode()).decode()
         
-        # Redirect to frontend callback page
-        frontend_url = f"http://localhost:3000/auth/callback?data={data_b64}"
+        # Use URL fragment so tokens are not sent back to frontend server logs.
+        frontend_url = f"{settings.FRONTEND_URL}/auth/callback#data={data_b64}"
         return RedirectResponse(url=frontend_url)
         
-    except Exception as e:
+    except Exception:
         raise HTTPException(
             status_code=500,
-            detail=f"Authentication failed: {str(e)}"
+            detail="Authentication failed"
         )
 
 
